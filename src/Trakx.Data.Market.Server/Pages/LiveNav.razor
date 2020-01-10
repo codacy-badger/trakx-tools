@@ -1,0 +1,138 @@
+﻿@page "/livenav"
+@using System.Collections.Concurrent
+@using System.Text.Json
+@using System.Threading
+@using Microsoft.AspNetCore.SignalR.Client;
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@using Trakx.Data.Market.Common.Pricing
+@using Trakx.Data.Market.Server.Hubs
+@using Trakx.Data.Models.Index
+@inject NavigationManager NavigationManager
+@inject IIndexDefinitionProvider IndexDefinitionProvider
+@implements IDisposable
+@implements INavHubClient
+
+<h1>Live Index NAV</h1>
+
+<input id="symbol" @onchange="ChangeSymbol" />
+<button class="btn btn-primary" id="addSymbol" @onclick="AddSymbol">Add</button>
+<button class="btn btn-primary" id="removeSymbol" @onclick="RemoveCurrentSymbol">Remove</button>
+<br />
+
+<p>NavHub Uri: @_liveNavUri</p>
+<br />
+
+<p>@_message</p>
+<br />
+
+<table class="table small">
+    @if (_updatesBySymbol.Any())
+    {
+        <tr>
+            <td>Updated</td>
+            <td>Symbol</td>
+            <td>NAV</td>
+        </tr>
+    }
+    @foreach (var update in _updatesBySymbol.Values)
+    {
+        <tr>
+            <td>@update.TimeStamp.ToString("yyyyMMdd - hh:mm:ss")</td>
+            <td>@update.Symbol</td>
+            <td>@update.Value.ToString("F4")</td>
+        </tr>
+    }
+</table>
+<br />
+
+@code {
+    private Uri _liveNavUri;
+    private HubConnection _connection;
+
+    private string _symbol = string.Empty;
+    private string _message = "Register for updates by adding and index symbol above";
+
+    private readonly ConcurrentDictionary<string, NavUpdate> _updatesBySymbol = new ConcurrentDictionary<string, NavUpdate>();
+    private readonly Guid _clientId = Guid.NewGuid();
+
+    public async Task AddSymbol()
+    {
+        var addMe = _symbol;
+
+        var index = await IndexDefinitionProvider.GetDefinitionFromSymbol(addMe).ConfigureAwait(false);
+        if (index == IndexDefinition.Default)
+        {
+            _message = $"Unable to retrieve definition for index {addMe}";
+            return;
+        }
+
+        try
+        {
+            await _connection.InvokeAsync<bool>(nameof(NavHub.RegisterClientToNavUpdates),
+                _clientId, index.Id).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _message = $"Failed to add symbol {addMe}";
+        }
+
+        _updatesBySymbol.TryAdd(_symbol, new NavUpdate(addMe, 0));
+    }
+
+    public async Task RemoveCurrentSymbol()
+    {
+        var deleteMe = _symbol;
+
+        await RemoveSymbol(deleteMe);
+    }
+
+    private async Task RemoveSymbol(string deleteMe)
+    {
+        await _connection.InvokeAsync<bool>(nameof(NavHub.DeregisterClientFromNavUpdates),
+            _clientId, deleteMe).ConfigureAwait(false);
+        _updatesBySymbol.TryRemove(_symbol, out var _);
+    }
+
+    public void ChangeSymbol(ChangeEventArgs change)
+    {
+        _symbol = change.Value?.ToString() ?? string.Empty;
+    }
+
+    public async Task ReceiveNavUpdate(NavUpdate update)
+    {
+        try
+        {
+            if (!_updatesBySymbol.ContainsKey(update.Symbol)) return;
+            var updateResult = _updatesBySymbol.AddOrUpdate(update.Symbol, _ => update,
+                (s, oldValue) => (oldValue.TimeStamp < update.TimeStamp) ? update : oldValue);
+            if (updateResult == update) await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception e)
+        {
+            _message = $"Failed to process NavUpdate for {JsonSerializer.Serialize(update)}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Uri.TryCreate(new Uri(NavigationManager.BaseUri), "/hubs/nav", out var liveNavUri)) return;
+        _liveNavUri = liveNavUri;
+        _connection = new HubConnectionBuilder()
+            .WithUrl(_liveNavUri)
+            .AddMessagePackProtocol()
+            .Build();
+
+        await _connection.StartAsync();
+        _connection.On<NavUpdate>(nameof(INavHubClient.ReceiveNavUpdate), ReceiveNavUpdate);
+    }
+
+    public void Dispose()
+    {
+        foreach (var symbol in _updatesBySymbol.Keys)
+        {
+            RemoveSymbol(symbol).GetAwaiter().GetResult();
+        }
+    }
+
+}

@@ -1,47 +1,9 @@
-| Windows | MacOs | Ubuntu64
-| :---- | :------ | :---- |
-| [![Build Status]()]() | [![Build Status]()]() | [![Build Status]()]()
+[![Build status](https://dev.azure.com/trakx-io/data-market/_apis/build/status/data-market-ASP.NET%20Core-CI)](https://dev.azure.com/trakx-io/data-market/_build/latest?definitionId=1)
 
-# marketdata-feeds-mvp
+# Trakx data-market
+A small web service providing info about Trakx indices and usefull live calculations.
+Data sources used for the calculations are currently CoinGecko and CryptoCompare.
 
-A web service providing historical and realtime market data for our trackers, the data is calculated based on data sourced on CoinMarketCap.com and CryptoCompare.com
+# Running version
 
-## Tracker list
-
-This tool serves market data for the following trackers
-
-- L2BTC - Long BTC Levered x2
-- L3BTC - Long BTC Levered x3
-- I1BTC - Inverse BTC
-- I2BTC - Inverse BTC Levered x2
-- I3BTC - Inverse BTC Levered x3
-- L2ETH - Long ETH Levered x2
-- L3ETH - Long ETH Levered x3
-- I1ETH - Inverse ETH
-- I2ETH - Inverse ETH Levered x2
-- I3ETH - Inverse ETH Levered x3
-- L1MC005 - Long Top 5 Market Cap
-- L2MC005 - Long Top 5 Market Cap Levered x2
-- I1MC005 - Inverse Top 5 Market Cap
-- I2MC005 - Inverse Top 5 Market Cap Levered x2
-- L1MC005 - Long Top 20 Market Cap
-- L1MC020 - Long Top 20 Market Cap Levered x2
-- I1MC020 - Inverse Top 20 Market Cap
-- I1MC020 - Inverse Top 20 Market Cap Levered x2
-
-## Available endpoints
-
-### Rest API :
-
-- price
-- all/coinlist
-- top/totalvol
-- top/volumes
-- pricehistorical
-- pricemultifull
-- top/pair
-- all/exchanges
-
-### Websocket :
-
-Subscription : type~market~symbol~currency
+A running version can be found at marketdata.trakx.io
