@@ -1,40 +1,12 @@
-﻿using System;
-using System.Linq;
-using AutoMapper;
+﻿using System.Linq;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Trakx.Data.Common.Interfaces.Index;
-using Trakx.Data.Market.Server.Models;
 using Xunit;
 
 namespace Trakx.Data.Tests.Unit.Models.Index
 {
-    public sealed class DbContextFixture : IDisposable
-    {
-        public TestIndexRepositoryContext Context { get; private set; }
-        
-
-        public DbContextFixture()
-        {
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddMappings();
-            var serviceProvider = serviceCollection.BuildServiceProvider();
-            var mapper = serviceProvider.GetRequiredService<IMapper>();
-            Context = new TestIndexRepositoryContext(mapper);
-        }
-
-        #region IDisposable
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            Context?.Dispose();
-        }
-
-        #endregion
-    }
-
-    public class IndexDefinitionTests : IClassFixture<DbContextFixture>
+    [Collection(nameof(DbContextCollection))]
+    public class IndexDefinitionTests
     {
         private readonly DbContextFixture _fixture;
         private readonly int _expectedIndexCount;
@@ -49,7 +21,7 @@ namespace Trakx.Data.Tests.Unit.Models.Index
             var indexVersions = 2;
             _expectedCompositionCount = _expectedIndexCount * indexVersions;
             _expectedComponentCount = 54;
-            _expectedQuantitiesCount = 44 + 44;
+            _expectedQuantitiesCount = 52 + 53;
         }
 
         [Fact]
@@ -91,8 +63,8 @@ namespace Trakx.Data.Tests.Unit.Models.Index
         {
             var indexCompositions = _fixture.Context.IndexCompositions;
             indexCompositions.Count().Should().Be(_expectedCompositionCount);
-            indexCompositions.Where(i => i.Version == 1).Sum(i => i.ComponentQuantityDaos.Count).Should().Be(44);
-            indexCompositions.Where(i => i.Version == 2).Sum(i => i.ComponentQuantityDaos.Count).Should().Be(44);
+            indexCompositions.Where(i => i.Version == 1).Sum(i => i.ComponentQuantityDaos.Count).Should().Be(52);
+            indexCompositions.Where(i => i.Version == 2).Sum(i => i.ComponentQuantityDaos.Count).Should().Be(53);
             foreach (var indexCompositionDao in indexCompositions)
             {
                 indexCompositionDao.IsValid().Should().BeTrue();
