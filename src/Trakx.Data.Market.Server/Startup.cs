@@ -64,7 +64,7 @@ namespace Trakx.Data.Market.Server
                 c.IncludeXmlComments(xmlPath);
             });
 
-
+            services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
             services.AddScoped<IIndexDataProvider, IndexDataProvider>();
             services.AddScoped<NavHub>();
             services.AddPricing();
