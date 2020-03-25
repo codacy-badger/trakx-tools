@@ -1,9 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Numerics;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nethereum.ABI.Encoders;
 using Nethereum.Hex.HexConvertors.Extensions;
@@ -36,6 +33,11 @@ namespace Trakx.Data.Tests.Unit.Common.Ethereum
             _coreService = Substitute.For<ICoreService>();
 
             var mockCreator = new MockCreator();
+            var transactionReceipt = mockCreator.GetTransactionReceipt();
+            _coreService.CreateSetRequestAndWaitForReceiptAsync(default,
+                    default, default, default, default, default, default)
+                .ReturnsForAnyArgs(transactionReceipt);
+
             _indexComposition = mockCreator.GetIndexComposition(3);
         }
 
